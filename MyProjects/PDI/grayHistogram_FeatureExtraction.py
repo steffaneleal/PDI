@@ -16,7 +16,7 @@ def main():
     trainImages, trainLabels = getData(trainImagePath)
     trainEncodedLabels, encoderClasses = encodeLabels(trainLabels)
 
-    trainFeatures = extractHuMomentsFeatures(trainImages)
+    trainFeatures = extractHOGFeatures(trainImages)
 
     saveData(trainFeaturePath,trainEncodedLabels,trainFeatures,encoderClasses)
     print(f'[INFO] =========== TEST IMAGES =========== ')
