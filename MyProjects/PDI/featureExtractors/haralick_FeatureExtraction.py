@@ -1,6 +1,6 @@
 import os
 import cv2
-import mahotas  # pip install mahotas (computer vision library)
+import mahotas  
 import numpy as np
 from sklearn import preprocessing
 from progress.bar import Bar
