@@ -4,27 +4,22 @@ import numpy as np
 from sklearn import preprocessing
 from progress.bar import Bar
 import time
-from skimage import feature
 
 def main():
     mainStartTime = time.time()
     trainImagePath = './images_split/train/'
     testImagePath = './images_split/test/'
-    trainFeaturePath = './features_labels/train/'
-    testFeaturePath = './features_labels/test/'
+    trainFeaturePath = './features_labels/grayhistogram/train/'
+    testFeaturePath = './features_labels/grayhistogram/test/'
     print(f'[INFO] ========= TRAINING IMAGES ========= ')
     trainImages, trainLabels = getData(trainImagePath)
     trainEncodedLabels, encoderClasses = encodeLabels(trainLabels)
-
-    trainFeatures = extractHOGFeatures(trainImages)
-
+    trainFeatures = extractGrayHistogramFeatures(trainImages)
     saveData(trainFeaturePath,trainEncodedLabels,trainFeatures,encoderClasses)
     print(f'[INFO] =========== TEST IMAGES =========== ')
     testImages, testLabels = getData(testImagePath)
     testEncodedLabels, encoderClasses = encodeLabels(testLabels)
-
-    testFeatures = extractHuMomentsFeatures(testImages)
-
+    testFeatures = extractGrayHistogramFeatures(testImages)
     saveData(testFeaturePath,testEncodedLabels,testFeatures,encoderClasses)
     elapsedTime = round(time.time() - mainStartTime,2)
     print(f'[INFO] Code execution time: {elapsedTime}s')
@@ -47,60 +42,20 @@ def getData(path):
                 bar.finish()
         #print(labels)
         return images, np.array(labels,dtype=object)
-
-def extractHOGFeatures(images):
-    bar = Bar('[INFO] Extracting HOG features...', max=len(images),
-              suffix='%(index)d/%(max)d Duration:%(elapsed)ds')
+    
+def extractGrayHistogramFeatures(images):
+    bar = Bar('[INFO] Extrating Gray histogram features...',max=len(images),suffix='%(index)d/%(max)d  Duration:%(elapsed)ds')
     featuresList = []
     for image in images:
-        if np.ndim(image) > 2:  # > 2 = colorida
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # Configuração do extrator HOG (você pode ajustar os parâmetros)
-        hog = cv2.HOGDescriptor()
-        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-        
-        # Cálculo das características HOG
-        features = hog.compute(image)
-        featuresList.append(features.flatten())
+        if(len(image.shape)>2): #imagem colorida
+            image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        bins = [256]
+        hist = cv2.calcHist([image], [0], None, bins, [0,256] )
+        cv2.normalize(hist,hist)
+        featuresList.append(hist.flatten())
         bar.next()
     bar.finish()
-    return np.array(featuresList, dtype=object)
-
-def extractHuMomentsFeatures(images):
-    bar = Bar('[INFO] Extracting Hu Moments features...', max=len(images),
-              suffix='%(index)d/%(max)d  Duration:%(elapsed)ds')
-    featuresList = []
-    for image in images:
-        if np.ndim(image) > 2:  # > 2 = colorida
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-
-        moments = cv2.moments(image)
-        huMoments = cv2.HuMoments(moments)
-
-        huMoments = -1 * np.sign(huMoments) * np.log10(np.abs(huMoments))
-
-        featuresList.append(huMoments.flatten())
-        bar.next()
-    bar.finish()
-    return np.array(featuresList, dtype=object)
-
-def extractLBPFeatures(images):
-    bar = Bar('[INFO] Extracting LBP features...', max=len(images),
-              suffix='%(index)d/%(max)d  Duration:%(elapsed)ds')
-    featuresList = []
-    for image in images:
-        if np.ndim(image) > 2:  # > 2 = colorida
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        lbp = feature.local_binary_pattern(image, P=8, R=1, method="uniform")
-        (hist, _) = np.histogram(lbp.ravel(), bins=np.arange(0, 10), range=(0, 10))
-
-        featuresList.append(hist)
-        bar.next()
-    bar.finish()
-    return np.array(featuresList, dtype=object)
+    return np.array(featuresList,dtype=object)
 
 def encodeLabels(labels):
     startTime = time.time()
